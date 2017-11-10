@@ -1,11 +1,12 @@
 # docker-rfid-mqtt-hr-attendance
 
-Instructions
-============
+## Installation
 
-    Clone repo
+* Clone repo
 
-    Configure docker-compose file environment variables
+* Configure docker-compose file environment variables
 
-    `` docker-compose up -d ``
+* Run compose:
+
+    $ `` docker-compose up -d ``
 
