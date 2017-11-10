@@ -1,0 +1,36 @@
+version: "2.1"
+services:
+  mosquitto:
+    build: ./docker_mosquitto
+    restart: always
+    volumes:
+      - conf:/conf
+      - logs:/var/log
+    ports:
+    - "1883:1883"
+    - "1884:1884"
+
+  odoo_rfid_mqtt:
+    build: ./docker_odoo_rfid_mqtt
+    environment:
+      USERID: "0" #Generally use 0 administrator userid of odoo 
+      DB_PASSWORD: "DB_PASSWORD"
+      PGDATABASE: "PGDATABASE_NAME"
+      MQTTHOST: "mosquitto" # Host URL of mosquitto service, using by default working
+      MQTTPORT:  "1883" # Port of mosquitto service
+      MQTTUSER: "MQTT_USER" # credential for basic auth, check XXX
+      MQTTPASS: "MQTT_PASS" # credential for basic auth, check XXX
+    restart: always
+    depends_on:
+    - mosquitto
+
+networks:
+  default:
+    driver_opts:
+      encrypted: 1
+
+volumes:
+  conf:
+  logs:
+
+
