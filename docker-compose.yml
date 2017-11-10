@@ -18,8 +18,8 @@ services:
       PGDATABASE: "PGDATABASE_NAME"
       MQTTHOST: "mosquitto" # Host URL of mosquitto service, using by default working
       MQTTPORT:  "1883" # Port of mosquitto service
-      MQTTUSER: "MQTT_USER" # credential for basic auth, check XXX
-      MQTTPASS: "MQTT_PASS" # credential for basic auth, check XXX
+      MQTTUSER: "MQTT_USER" # credential for basic auth   ## check docker_moquitto/config/mosquitto.conf ##
+      MQTTPASS: "MQTT_PASS" # credential for basic auth,  ## for more infor                              ##
     restart: always
     depends_on:
     - mosquitto
