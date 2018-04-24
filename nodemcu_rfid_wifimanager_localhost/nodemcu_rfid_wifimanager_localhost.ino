@@ -12,21 +12,23 @@
 //https://github.com/knolleary/pubsubclient
 #include <PubSubClient.h>
 
+#include <AES.h>
+#include <AES_config.h>
+#include <ebase64.h>
+
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
-#define RESET_PIN 16  // -> CHANGE TO D3 - GPIO0
+#define RESET_PIN 16
 #define RED_LED 4
 #define GREEN_LED 5
 #define BEEP 10
 
 #include <SPI.h>
 #include "MFRC522.h"
-#define RST_PIN 0 // RST-PIN for RC522 - RFID - SPI - Modul GPIO0 - D3  --> CHANGE TO D8 - GPIO15?
-#define SS_PIN  2  // SDA-PIN for RC522 - RFID - SPI - Modul GPIO2 - D4  
+#define RST_PIN 0 // RST-PIN for RC522 - RFID - SPI - Modul GPIO0 - D3
+#define SS_PIN  2  // SDA-PIN for RC522 - RFID - SPI - Modul GPIO2 - D4
 
 
-//define your default values here, 
-//if there are different values in config.json, 
-//they are overwritten.
+//define your default values here, if there are different values in config.json, they are overwritten.
 //length should be max size + 1
 char odoo_host[90];
 char odoo_port[6] = "8069";
@@ -37,6 +39,16 @@ char odoo_database[24];
 //MQTT parametros.
 const char* mqtt_server = "192.168.1.37";
 const int mqtt_port = 1883;
+
+//AES parameters
+
+AES aes;
+
+// Our AES key.
+byte key[] = {0x7e, 0x4e, 0x42, 0x38, 0x43, 0x63, 0x4f, 0x4c, 0x23, 0x4a, 0x21, 0x48, 0x3f, 0x7c, 0x59, 0x72};
+
+// The initialized Initialization vector
+byte iv[N_BLOCK] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //flag for saving data
 bool shouldSaveConfig = false;
@@ -60,7 +72,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
 
-  pinMode(RESET_PIN, INPUT); // IF FINALLY WE USE THE INTERNAL_PULLUP, SUBSTITUTE FOR pinMode(RESET_PIN, INPUT_PULLUP);
+  pinMode(RESET_PIN, INPUT);
   pinMode(RED_LED, OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
   SPI.begin();           // Init SPI bus
@@ -157,8 +169,6 @@ void setup() {
     //reset and try again, or maybe put it to deep sleep
     ESP.reset();
     delay(5000);
-  } else {
-    Serial.println("password:12345678");
   }
 
   //if you get here you have connected to the WiFi
@@ -307,10 +317,74 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
     strcat( &rfidstr[i] , s);
   }
   char buf[512];
-  snprintf(buf, sizeof buf, "%s###%s###%s###%s###%s###%s", odoo_host, odoo_port, odoo_user, odoo_password, odoo_database, rfidstr);
+  char b64data[512];
+  //snprintf(buf, sizeof buf, "%s###%s###%s###%s###%s###%s", odoo_host, odoo_port, odoo_user, odoo_password, odoo_database, rfidstr);
+  encrypt(buf,b64data,rfidstr);
   currentCard = rfidstr;
-  client.publish("acesso", buf);
+  client.publish("acesso", b64data);
   Serial.println(" Verifing...");
+}
+
+uint8_t generate_random_uint8()
+{
+  uint8_t really_random = *(volatile uint8_t *)0x3FF20E44;
+  return really_random;
+}
+
+// Generate a random initialization vector
+void generate_iv(byte *vector)
+{
+  for (int i = 0; i < N_BLOCK; i++)
+  {
+    vector[i] = (byte)generate_random_uint8();
+  }
+}
+
+void encrypt(char *buf, char *b64data, char *rfid)
+{
+  byte cipher[1000];
+  byte iv[N_BLOCK];
+
+  generate_iv(iv);
+
+  snprintf(buf, sizeof buf, "%s,%s,%s,%s,%s,%s\0'", odoo_host, odoo_port, odoo_user, odoo_password, odoo_database,rfid);//, rfidstr);
+  Serial.println(" Input message: " + String(buf));
+
+  base64_encode(b64data, (char *)iv, N_BLOCK);
+  String IV_base64 = String(b64data);
+  Serial.println(" IV b64: " + IV_base64);
+
+  int b64len = base64_encode(b64data, (char *)buf, strlen(buf));//msg.length());
+
+  Serial.println(" The lenght is:  " + String(b64len));
+  aes.set_key(key, sizeof(key));
+  // Encrypt! With AES128, our key and IV, CBC and pkcs7 padding
+  aes.do_aes_encrypt((byte *)b64data, b64len, cipher, key, 128, iv);
+
+  Serial.println("Cipher size: " + String(aes.get_size()));
+
+  base64_encode(b64data, (char *)cipher, aes.get_size());
+  Serial.println("Encrypted data in base64: " + String(b64data));
+
+  decrypt(b64data, IV_base64, aes.get_size(),strlen(buf));
+}
+
+void decrypt(String b64data, String IV_base64, int size, int buf_size)
+{
+  char data_decoded[200];
+  char iv_decoded[200];
+  byte out[200];
+  char temp[200];
+  b64data.toCharArray(temp, 200);
+  base64_decode(data_decoded, temp, b64data.length());
+  IV_base64.toCharArray(temp, 200);
+  base64_decode(iv_decoded, temp, IV_base64.length());
+  aes.do_aes_decrypt((byte *)data_decoded, size, out, key, 128, (byte *)iv_decoded);
+  char message[buf_size];//msg.length()];
+  base64_decode(message, (char *)out, b64data.length());
+  printf("Out %s \n", message);
+  Serial.println();
+  Serial.println();
 }
 
 
