@@ -1,41 +1,36 @@
-version: "$version.1"
+version: "3.1"
 services:
   mosquitto:
     build: ./docker_mosquitto
     restart: always
+    secrets: 
+      - sensitiveInfo
     volumes:
       - conf:/conf
       - logs:/var/log
-    networks:
-      default:
+    ports:
+    - "1883:1883"
+    - "1884:1884"
 
   odoo_rfid_mqtt:
     build: ./docker_odoo_rfid_mqtt
-    environment:
-      USERID: "$USERID" #Generally use 0 administrator userid of odoo 
-      DB_PASSWORD: "$DB_PASSWORD"
-      PGDATABASE: "$PGDATABASE"
-      MQTTHOST: "$MQTTHOST" # Host URL of mosquitto service, using by default working
-      MQTTPORT:  "$MQTTPORT" # Port of mosquitto service
-      MQTTUSER: "$MQTTUSER" # credential for basic auth   ## check docker_moquitto/config/mosquitto.conf ##
-      MQTTPASS: "$MQTTPASS" # credential for basic auth,  ## for more infor                              ##
     restart: always
+    secrets: 
+      - sensitiveInfo
     depends_on:
-    - mosquitto
-    network:
-      default:
-      inverseproxy_shared:
-    
+      - mosquitto
+
 networks:
   default:
     driver_opts:
       encrypted: 1
-      
-  inverseproxy_shared:
-        external: true
 
 volumes:
   conf:
   logs:
+
+secrets:
+  sensitiveInfo:
+    file: ./docker_odoo_rfid_mqtt/secrets/sensitiveInfo
 
 
