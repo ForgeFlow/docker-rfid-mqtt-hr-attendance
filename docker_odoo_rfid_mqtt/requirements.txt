@@ -1,0 +1,2 @@
+paho-mqtt==1.2.3
+pycryptodome==3.4.11
