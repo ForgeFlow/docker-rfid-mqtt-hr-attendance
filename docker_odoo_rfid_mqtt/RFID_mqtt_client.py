@@ -110,9 +110,9 @@ def on_message(mosq, obj, msg):
                   "###############################################")
             connection(host, port, user_name, user_password, dbname)
             if check_id_integrity(card_id):
-                res = object_facade.execute("hr.employee",
-                                            "register_rfid_attendance_event",
-                                            [card_id])
+                res = object_facade.execute(
+                    dbname, user_id, user_password, "hr.employee",
+                    "register_rfid_attendance_event", [card_id])
                 print(res)
                 mqttc.publish("response", res["action"])
                 r = os.urandom(16)

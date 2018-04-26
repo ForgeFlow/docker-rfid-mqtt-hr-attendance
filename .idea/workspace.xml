@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="86e6d3a1-2091-4b9b-8d76-84b78569846b" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker_odoo_rfid_mqtt/RFID_mqtt_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/docker_odoo_rfid_mqtt/RFID_mqtt_client.py" afterDir="false" />
-    </list>
+    <list default="true" id="86e6d3a1-2091-4b9b-8d76-84b78569846b" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -17,8 +14,8 @@
       <file leaf-file-name="RFID_mqtt_client.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/docker_odoo_rfid_mqtt/RFID_mqtt_client.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="606">
-              <caret line="118" column="32" selection-start-line="118" selection-start-column="32" selection-end-line="118" selection-end-column="32" />
+            <state relative-caret-position="354">
+              <caret line="104" column="30" selection-start-line="104" selection-start-column="30" selection-end-line="104" selection-end-column="30" />
             </state>
           </provider>
         </entry>
@@ -77,7 +74,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../10.0" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="preferences.sourceCode" />
   </component>
   <component name="RunDashboard">
@@ -184,8 +181,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/docker_odoo_rfid_mqtt/RFID_mqtt_client.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="606">
-          <caret line="118" column="32" selection-start-line="118" selection-start-column="32" selection-end-line="118" selection-end-column="32" />
+        <state relative-caret-position="354">
+          <caret line="104" column="30" selection-start-line="104" selection-start-column="30" selection-end-line="104" selection-end-column="30" />
         </state>
       </provider>
     </entry>
