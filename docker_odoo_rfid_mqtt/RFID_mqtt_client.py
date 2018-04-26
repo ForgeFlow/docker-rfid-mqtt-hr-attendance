@@ -113,6 +113,7 @@ def on_message(mosq, obj, msg):
                 res = object_facade.execute(
                     dbname, user_id, user_password, "hr.employee",
                     "register_rfid_attendance_event", [card_id])
+                print("PROPER ID")
                 print(res)
                 mqttc.publish("response", res["action"])
                 r = os.urandom(16)
@@ -158,7 +159,8 @@ def set_range(l):
 def check_id_integrity(nid):
     checksum = 0
     for i in xrange(len(nid)):
-        if ('0' >= nid[i] <= '9') or ('a' >= nid[i] <= 'z'):
+        #if ('0' >= nid[i] <= '9') or ('a' >= nid[i] <= 'z'): It didn't work properly when tested
+        if (nid[i]>='0' and nid[i]<='9') or (nid[i]>='a' and nid[i]<='z'):
             checksum = checksum + 1
     if checksum == 8:
         return True

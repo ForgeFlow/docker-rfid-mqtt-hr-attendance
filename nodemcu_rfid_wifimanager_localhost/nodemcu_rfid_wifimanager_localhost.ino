@@ -300,22 +300,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println(mensagem);
   Serial.println();
   if(strcmp(topic, "retorno") == 0){
-    
-    cnt = 0;
+   
+  cnt = 0;
 
-    if (mensagem == "FALSE") {
-      digitalWrite(RED_LED, HIGH);
-      tone(BEEP, 1930);
-        delay(150);
-        tone(BEEP, 1630);
-        delay(100);
-        noTone(BEEP);
-      delay(1000);
-      digitalWrite(RED_LED, LOW);
-      delay(250);
-    }
-    else {
-      if(mensagem == "NOAUTH"){
+  if(mensagem == "NOAUTH"){
         digitalWrite(RED_LED, HIGH);
         delay(500);
         digitalWrite(GREEN_LED, HIGH);
@@ -324,17 +312,40 @@ void callback(char* topic, byte* payload, unsigned int length) {
         delay(250);
         digitalWrite(GREEN_LED, LOW);
         delay(250);
-      } else {
+  }
+  else {
+    if(mensagem == "check_in"){
+      digitalWrite(GREEN_LED, HIGH);
+      tone(BEEP, 1630);
+      delay(150);
+      tone(BEEP, 1930);
+      delay(100);
+      noTone(BEEP);
+      delay(1000);
+      digitalWrite(GREEN_LED, LOW);
+      delay(250);
+    } else {
+        if(mensagem == "check_out"){
         digitalWrite(GREEN_LED, HIGH);
-        tone(BEEP, 1630);
-        delay(150);
         tone(BEEP, 1930);
+        delay(150);
+        tone(BEEP, 1630);
         delay(100);
         noTone(BEEP);
         delay(1000);
         digitalWrite(GREEN_LED, LOW);
         delay(250);
-        Serial.println("#############################################################################");
+        } else {
+            digitalWrite(RED_LED, HIGH);
+            tone(BEEP, 2030);
+            delay(150);
+            tone(BEEP, 2030);
+            delay(100);
+            noTone(BEEP);
+            delay(1000);
+            digitalWrite(RED_LED, LOW);
+            delay(250);
+          }
     }
   }
   currentCardold = currentCard;
