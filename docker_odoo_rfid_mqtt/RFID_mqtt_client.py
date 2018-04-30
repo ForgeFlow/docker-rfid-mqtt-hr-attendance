@@ -29,11 +29,11 @@ mqtt_id = d["mqtt_id"]
 mqtt_user = d["mqtt_user"]
 mqtt_pass = d["mqtt_pass"]
 key = d["key"]
-staticiv = d["staticiv"]
 
 cnt = 0
 r = 0
 same = True
+flag_auth = True
 
 
 def connection(host, port, user, user_pw, database):
@@ -118,12 +118,18 @@ def on_message(mosq, obj, msg):
             else:
                 print("--------------- CARD ID INTEGRITY "
                       "COMPROMISED ----------------")
-            mqttc.publish("response", "NOAUTH")
+                mqttc.publish("response", "NOAUTH")
         print("Trial: " + str(cnt))
         cnt = cnt + 1
     elif msg.topic == "hmac":
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-        hmac = HMAC.new(key,r,SHA256)
+        if not r:
+            r = os.urandom(16)
+            r = set_range(r)
+            print("ReAuth Session ID: " + r)
+            mqttc.publish("ack", r)
+            return 0
+        hmac = HMAC.new(key, r, SHA256)
         print key
         computed_hash_hex = hmac.hexdigest()
         print("HMAC(HEX): " + computed_hash_hex)
@@ -206,6 +212,9 @@ mqttc.subscribe("hmac",0)
 # loop searching for new data to read
 rc = 0
 while rc == 0:
-    rc = mqttc.loop()
-print("rc: " + str(rc))
+    try:
+        rc = mqttc.loop()
+    except TypeError as e:
+        print "Error: " + str(e)
 
+print("rc: " + str(rc))
