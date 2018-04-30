@@ -1,12 +1,15 @@
 import xmlrpclib
+import socket
 import paho.mqtt.client as mqtt
+
 import os
+import urlparse
 
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256, HMAC
-
+import binascii
 import base64
-
+import random, time
 
 object_facade = None
 
@@ -163,7 +166,9 @@ def check_id_integrity(nid):
     checksum = 0
     for i in xrange(len(nid)):
         #if ('0' >= nid[i] <= '9') or ('a' >= nid[i] <= 'z'): It didn't work properly when tested
-        if (nid[i]>='0' and nid[i]<='9') or (nid[i]>='a' and nid[i]<='z'):
+        numbers = all([nid[i]>='0', nid[i]<='9'])
+        letters = all([nid[i]>='a', nid[i]<='z'])
+        if numbers or letters:
             checksum = checksum + 1
     if checksum == 8:
         return True
@@ -214,7 +219,7 @@ rc = 0
 while rc == 0:
     try:
         rc = mqttc.loop()
-    except TypeError as e:
+    except Exception as e:
         print "Error: " + str(e)
 
 print("rc: " + str(rc))
