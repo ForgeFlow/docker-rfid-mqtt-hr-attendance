@@ -64,7 +64,7 @@ char passwordMQTT[15];
 
 /*  AES-HMAC-Base64 variables  */
 
-byte key_hmac[KEY_LENGTH];
+byte key_hmac[KEY_LENGTH]={0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 byte authCode[SHA256HMAC_SIZE];
 char authCodeb64[200];
 char rfid_b64[200];
@@ -507,5 +507,6 @@ void loop() {
     flag_init = 1;
     currentCardold = currentCard;
     currentCard = "";
+    cnt = 0;
   }
 }
