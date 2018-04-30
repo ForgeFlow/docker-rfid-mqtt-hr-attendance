@@ -133,7 +133,6 @@ def on_message(mosq, obj, msg):
             mqttc.publish("ack", r)
             return 0
         hmac = HMAC.new(key, r, SHA256)
-        print key
         computed_hash_hex = hmac.hexdigest()
         print("HMAC(HEX): " + computed_hash_hex)
         hashb64 = base64.b64decode(msg.payload)
@@ -142,11 +141,13 @@ def on_message(mosq, obj, msg):
         same = compare_digest(computed_hash_hex,hash_from_arduino)
         flag_auth = False
         print("HMAC Comparison: " + str(same))
-    else:
+    elif msg.topic == "init":
         r = os.urandom(16)
         r = set_range(r)
         print("Session ID: " + r)
         mqttc.publish("ack", r)
+    else:
+        print("on_message restrictions not passed")
 
 
 def set_range(l):
