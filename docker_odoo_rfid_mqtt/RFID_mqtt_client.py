@@ -121,7 +121,7 @@ def on_message(mosq, obj, msg):
             else:
                 print("--------------- CARD ID INTEGRITY "
                       "COMPROMISED ----------------")
-            mqttc.publish("response", "NOAUTH")
+                mqttc.publish("response", "NOAUTH")
         print("Trial: " + str(cnt))
         cnt = cnt + 1
     elif msg.topic == "hmac":
@@ -160,7 +160,9 @@ def check_id_integrity(nid):
     checksum = 0
     for i in xrange(len(nid)):
         #if ('0' >= nid[i] <= '9') or ('a' >= nid[i] <= 'z'): It didn't work properly when tested
-        if (nid[i]>='0' and nid[i]<='9') or (nid[i]>='a' and nid[i]<='z'):
+        numbers = all([nid[i]>='0', nid[i]<='9'])
+        letters = all([nid[i]>='a', nid[i]<='z'])
+        if numbers or letters:
             checksum = checksum + 1
     if checksum == 8:
         return True
