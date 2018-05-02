@@ -1,7 +1,7 @@
 version: "3.1"
 services:
   mosquitto:
-    build: ./docker_mosquitto
+    build: ./mosquitto
     restart: always
     secrets: 
       - sensitiveInfo
@@ -13,7 +13,7 @@ services:
     - "1884:1884"
 
   odoo_rfid_mqtt:
-    build: ./docker_odoo_rfid_mqtt
+    build: ./odoo_rfid_mqtt_client
     restart: always
     secrets: 
       - sensitiveInfo
