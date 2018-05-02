@@ -31,6 +31,7 @@ dbname = d["dbname"]
 mqtt_id = d["mqtt_id"]
 mqtt_user = d["mqtt_user"]
 mqtt_pass = d["mqtt_pass"]
+key = d["key"]
 
 cnt = 0
 r = 0
