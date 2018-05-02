@@ -5,8 +5,6 @@ import paho.mqtt.client as mqtt
 
 import os
 import urlparse
-import requests
-import json
 
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256, HMAC
@@ -25,7 +23,6 @@ with open("./secrets/sensitiveInfo", "r") as sensInfo:
         d[str(key)] = val[:-1]
         print("KEY: " + str(key) + "|" + "VAL: " + str(val))
 
-user_id = d["user_id"]
 host = d["host"]
 port = d["port"]
 user_name = d["user_name"]
@@ -34,8 +31,6 @@ dbname = d["dbname"]
 mqtt_id = d["mqtt_id"]
 mqtt_user = d["mqtt_user"]
 mqtt_pass = d["mqtt_pass"]
-jr = requests.get('http://localhost:8069/hr_attendance_rfid/hola')
-key = json.loads(jr.content)['key'].encode('utf8')
 
 cnt = 0
 r = 0
