@@ -85,13 +85,16 @@ def on_message(mosq, obj, msg):
         print("RESET!!!!!!!!!!!!!!!")
     elif msg.topic == 'acceso':
         if same == False and flag_auth == True:
-            mqttc.publish("response", "NOAUTH")
+            device_id, rcv_info = str(msg.payload).split("###")
+            send_info = device_id + "###" + "NOAUTH"
+            mqttc.publish("response", send_info)
             print("++++++++++++++HMAC authentication failed++++++++++++++")
         else:
             flag_auth = True
             same = False
             print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-            card_id_b64 = msg.payload
+            device_id, rcv_info = str(msg.payload).split("###")
+            card_id_b64 = rcv_info
             card_id_aux = base64.b64decode(card_id_b64)
             print("CARD (encryptd and coded): " + card_id_aux)
             decryption_suite = AES.new(key,AES.MODE_CBC,r)
@@ -114,38 +117,45 @@ def on_message(mosq, obj, msg):
                     "register_attendance", card_id)
                 print("PROPER ID")
                 print(res)
-                mqttc.publish("response", res["action"])
+                send_info = device_id + "###" + res["action"]
+                mqttc.publish("response", send_info)
                 r = os.urandom(16)
                 r = set_range(r)
             else:
                 print("--------------- CARD ID INTEGRITY "
                       "COMPROMISED ----------------")
-                mqttc.publish("response", "NOAUTH")
+                send_info = device_id + "###" + "NOAUTH"
+                mqttc.publish("response", send_info)
         print("Trial: " + str(cnt))
         cnt = cnt + 1
     elif msg.topic == "hmac":
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+        device_id, rcv_info = str(msg.payload).split("###")
         if not r:
             r = os.urandom(16)
             r = set_range(r)
             print("ReAuth Session ID: " + r)
-            mqttc.publish("ack", "otherID")
+            send_info = device_id + "###" + "otherID"
+            mqttc.publish("ack", send_info)
             flag_auth = False
             return 0
         hmac = HMAC.new(key, r, SHA256)
         computed_hash_hex = hmac.hexdigest()
         print("HMAC(HEX): " + computed_hash_hex)
-        hashb64 = base64.b64decode(msg.payload)
+        hashb64 = base64.b64decode(rcv_info)
         hash_from_arduino = hashb64.encode("hex")
         print("HMAC_ESP8266(HEX): " + hash_from_arduino)
         same = compare_digest(computed_hash_hex,hash_from_arduino)
         flag_auth = False
         print("HMAC Comparison: " + str(same))
     elif msg.topic == "init":
+        print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+        device_id, rcv_info = str(msg.payload).split("###")
         r = os.urandom(16)
         r = set_range(r)
         print("Session ID: " + r)
-        mqttc.publish("ack", r)
+        send_info = device_id + "###" + r
+        mqttc.publish("ack", send_info)
     else:
         print("on_message restrictions not passed")
 

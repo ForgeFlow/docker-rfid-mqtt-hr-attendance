@@ -70,6 +70,14 @@ char authCodeb64[200];
 char rfid_b64[200];
 AES aes;
 char iv_py[20]; // This variable stores the session ID sent from the Python client, to compute the HMAC and it is also used as IV for the AES encryption
+char comp_info[100];
+
+/*  Buffers  */
+
+char buf[512];
+char buf_init[20];
+char buf_hmac[256];
+char buf_acceso[256];
 
 /*  Other variables  */
 
@@ -78,7 +86,6 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance
 WiFiClient espClient;
 PubSubClient client(espClient);
 const int mqtt_port = 1883;
-char buf[512];
 char rfidstr[15];
 bool shouldSaveConfig = true;
 String currentCard = "";
@@ -172,79 +179,108 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print(topic);
   Serial.print("]: ");
   String mensagem = "";
+  char * id;
+  char * msg;
+  
   //Convert msg from byte to string
   for (int i = 0; i < length; i++) {
     mensagem += (char)payload[i];
   }
-  mensagem.toCharArray(iv_py, sizeof iv_py);
+  
+  mensagem.toCharArray(comp_info, sizeof comp_info);
+
   Serial.println(mensagem);
   Serial.println();
+  Serial.println(comp_info);
+  Serial.println();
+
+  id = strtok (comp_info,"###");
+  Serial.println("Second time:");
+  Serial.println(comp_info);
+  Serial.println();
+  msg = strtok (NULL, "###");
   
-  if(strcmp(topic, "response") == 0){
-      cnt = 0;
-      if(mensagem == "NOAUTH"){
-          digitalWrite(RED_LED, HIGH);
-          delay(500);
-          digitalWrite(RED_LED, LOW);
-          delay(500);
-          digitalWrite(RED_LED, HIGH);
-          delay(150);
-          digitalWrite(RED_LED, LOW);
-          delay(150);
-      }
-      else {
-          if(mensagem == "check_in"){
-              digitalWrite(GREEN_LED, HIGH);
-              tone(BEEP, 1630);
+  Serial.println(id);
+  Serial.println();
+  Serial.println(msg);
+  Serial.println();
+
+  if(strcmp(id, nodeMCUClient) == 0){
+      if(strcmp(topic, "response") == 0){
+          cnt = 0;
+          if(strcmp(msg, "NOAUTH") == 0){
+              digitalWrite(RED_LED, HIGH);
+              delay(500);
+              digitalWrite(RED_LED, LOW);
+              delay(500);
+              digitalWrite(RED_LED, HIGH);
               delay(150);
-              tone(BEEP, 1930);
-              delay(100);
-              noTone(BEEP);
-              delay(1000);
-              digitalWrite(GREEN_LED, LOW);
-              delay(250);
-          } else {
-              if(mensagem == "check_out"){
+              digitalWrite(RED_LED, LOW);
+              delay(150);
+          }
+          else {
+              if(strcmp(msg, "check_in") == 0){
                   digitalWrite(GREEN_LED, HIGH);
-                  tone(BEEP, 1930);
-                  delay(150);
                   tone(BEEP, 1630);
+                  delay(150);
+                  tone(BEEP, 1930);
                   delay(100);
                   noTone(BEEP);
                   delay(1000);
                   digitalWrite(GREEN_LED, LOW);
                   delay(250);
               } else {
-                  digitalWrite(RED_LED, HIGH);
-                  tone(BEEP, 2030);
-                  delay(150);
-                  tone(BEEP, 2030);
-                  delay(100);
-                  noTone(BEEP);
-                  delay(1000);
-                  digitalWrite(RED_LED, LOW);
-                  delay(250);
+                  if(strcmp(msg, "check_out") == 0){
+                      digitalWrite(GREEN_LED, HIGH);
+                      tone(BEEP, 1930);
+                      delay(150);
+                      tone(BEEP, 1630);
+                      delay(100);
+                      noTone(BEEP);
+                      delay(1000);
+                      digitalWrite(GREEN_LED, LOW);
+                      delay(250);
+                  } else {
+                      digitalWrite(RED_LED, HIGH);
+                      tone(BEEP, 2030);
+                      delay(150);
+                      tone(BEEP, 2030);
+                      delay(100);
+                      noTone(BEEP);
+                      delay(1000);
+                      digitalWrite(RED_LED, LOW);
+                      delay(250);
+                  }
               }
           }
-      }
-  } else if(strcmp(topic, "ack") == 0){
-      cnt_ack = 0;
-      flag_ack = 0;
-      Serial.println(" ");
-      Serial.println(iv_py);
-      Serial.println(" ");
-      hmac.doUpdate(iv_py,strlen(iv_py));
-      hmac.doFinal(authCode);
-      Serial.println("AUTH CODE");
-      Serial.println();
-      for (byte i=0; i < SHA256HMAC_SIZE; i++)
-      {
-        Serial.print("0123456789abcdef"[authCode[i]>>4]);
-        Serial.print("0123456789abcdef"[authCode[i]&0xf]);
-      }
-      Serial.println(" ");
-      flag_init = 0;
-  } else Serial.println("ELSE " + mensagem);
+      } else if(strcmp(topic, "ack") == 0){
+          if(strcmp(msg, "otherID") == 0){
+            Serial.println("OTHER ID");
+            Serial.println();
+            ESP.reset();
+          } else {
+            cnt_ack = 0;
+            cnt=0;
+            flag_ack = 0;
+            strcpy(iv_py,msg);
+            Serial.println(" ");
+            Serial.println(iv_py);
+            Serial.println(" ");
+            hmac.doUpdate(iv_py,strlen(iv_py));
+            hmac.doFinal(authCode);
+            Serial.println("AUTH CODE");
+            Serial.println();
+          
+            for (byte i=0; i < SHA256HMAC_SIZE; i++)
+            {
+              Serial.print("0123456789abcdef"[authCode[i]>>4]);
+              Serial.print("0123456789abcdef"[authCode[i]&0xf]);
+            }
+            Serial.println(" ");
+            flag_init = 0;
+          }
+      } else Serial.println("ELSE " + mensagem);
+  }
 }
 
 /*****************************************************************************************************************/
@@ -395,7 +431,7 @@ void setup() {
     configFile.close();
     //end save
   }
-
+  Serial.println((char*)key_hmac);
   CharToByte(key, key_hmac, KEY_LENGTH);
 
   Serial.println("KEY HMAC + KEY : **********");
@@ -419,6 +455,8 @@ void setup() {
 
   cnt = 0;
 
+  snprintf(buf_init, sizeof buf_init, "%s###%s", nodeMCUClient, "INIT");
+
 }
 
 /*****************************************************************************************************************/
@@ -433,7 +471,7 @@ void loop() {
   client.loop();
 
   if(flag_init){
-    client.publish("init","INIT");
+    client.publish("init",buf_init);
     flag_init = 0;
     Serial.println("");
     Serial.println("ACK ASKED");
@@ -484,7 +522,8 @@ void loop() {
 
   if (currentCard == "" && cnt > 60) { // this cnt allows to make a wait between card reads 
     base64_encode(authCodeb64, (char *)authCode, SHA256HMAC_SIZE);
-    client.publish("hmac",(char *)authCodeb64);
+    snprintf(buf_hmac, sizeof buf_hmac, "%s###%s", nodeMCUClient, (char *)authCodeb64);
+    client.publish("hmac", buf_hmac);
 
     dump_byte_array(mfrc522.uid.uidByte, mfrc522.uid.size);
     encrypt_rfid(rfidstr,iv_py);
@@ -496,12 +535,15 @@ void loop() {
     Serial.println("");
     Serial.print("MESSAGE: " + String(rfid_b64));
     if(currentCard != currentCardold || cnt > 90){ // this cnt allows to set the time between card reads for the same card
-      client.publish("acceso", rfid_b64);
+      snprintf(buf_acceso, sizeof buf_acceso, "%s###%s", nodeMCUClient, rfid_b64);
+      client.publish("acceso", buf_acceso);
     } else {
       currentCard = "";
     }
     memset(rfid_b64, 0, sizeof(rfid_b64));
     memset(rfidstr, 0, sizeof(rfidstr));
+    memset(buf_hmac, 0, sizeof(buf_hmac));
+    memset(buf_acceso, 0, sizeof(buf_acceso));
 
     Serial.println();
     flag_init = 1;
