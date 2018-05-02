@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
 import xmlrpclib
 import socket
 import paho.mqtt.client as mqtt
 
 import os
 import urlparse
+import requests
+import json
 
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256, HMAC
@@ -31,7 +34,8 @@ dbname = d["dbname"]
 mqtt_id = d["mqtt_id"]
 mqtt_user = d["mqtt_user"]
 mqtt_pass = d["mqtt_pass"]
-key = d["key"]
+jr = requests.get('http://localhost:8069/hr_attendance_rfid/hola')
+key = json.loads(jr.content)['key'].encode('utf8')
 
 cnt = 0
 r = 0
@@ -85,7 +89,7 @@ def on_message(mosq, obj, msg):
         cnt = 0
         print("RESET!!!!!!!!!!!!!!!")
     elif msg.topic == 'acceso':
-        if same == False or flag_auth == True:
+        if same == False and flag_auth == True:
             mqttc.publish("response", "NOAUTH")
             print("++++++++++++++HMAC authentication failed++++++++++++++")
         else:
@@ -130,7 +134,8 @@ def on_message(mosq, obj, msg):
             r = os.urandom(16)
             r = set_range(r)
             print("ReAuth Session ID: " + r)
-            mqttc.publish("ack", r)
+            mqttc.publish("ack", "otherID")
+            flag_auth = False
             return 0
         hmac = HMAC.new(key, r, SHA256)
         computed_hash_hex = hmac.hexdigest()

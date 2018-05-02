@@ -12,13 +12,13 @@ services:
     - "1883:1883"
     - "1884:1884"
 
-  odoo_rfid_mqtt:
-    build: ./docker_odoo_rfid_mqtt
-    restart: always
-    secrets: 
-      - sensitiveInfo
-    depends_on:
-      - mosquitto
+  # odoo_rfid_mqtt:
+  #   build: ./docker_odoo_rfid_mqtt
+  #   restart: always
+  #   secrets: 
+  #     - sensitiveInfo
+  #   depends_on:
+  #     - mosquitto
 
 networks:
   default:
