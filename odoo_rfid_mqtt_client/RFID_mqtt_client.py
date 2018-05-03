@@ -44,11 +44,11 @@ def connection(host, port, user, user_pw, database):
     user_password = user_pw
     global dbname
     dbname = database
-    if port == '443':
+    if port == 443:
         url_template = "https://%s/xmlrpc/%s"
         login_facade = xmlrpclib.ServerProxy(url_template % (
         host.replace("http://", ""), 'common'))
-    if port == '80':
+    if port == 80:
         url_template = "http://%s/xmlrpc/%s"
         login_facade = xmlrpclib.ServerProxy(url_template % (
         host.replace("http://", ""), 'common'))
