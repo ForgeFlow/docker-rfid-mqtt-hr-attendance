@@ -49,22 +49,26 @@ def connection(host, port, user, user_pw, database):
         url_template = "https://%s/xmlrpc/%s"
         login_facade = xmlrpclib.ServerProxy(url_template % (
         host.replace("https://", ""), 'common'))
-    if str(port) == '80':
+    elif str(port) == '80':
         url_template = "http://%s/xmlrpc/%s"
         login_facade = xmlrpclib.ServerProxy(url_template % (
         host.replace("http://", ""), 'common'))
     else:
-        url_template = "https://%s/xmlrpc/%s"
+        url_template = "http://%s:%s/xmlrpc/%s"
         print "URL: ", url_template % (host.replace(
-            "https://", ""), 'common')
+            "http://", ""), port, 'common')
         login_facade = xmlrpclib.ServerProxy(url_template % (
-            host.replace("https://", ""), 'common'))
+            host.replace("http://", ""), port, 'common'))
     global user_id
     user_id = login_facade.login(database, user, user_pw)
     print "USER: ", user_id
     global object_facade
-    object_facade = xmlrpclib.ServerProxy(url_template % (
-        host, port, 'object'))
+    if str(port) in ['443', '80']:
+        object_facade = xmlrpclib.ServerProxy(url_template % (
+            host, 'object'))
+    else:
+         object_facade = xmlrpclib.ServerProxy(url_template % (
+            host, port, 'object'))
     print "object_facade: ", object_facade
 
 
