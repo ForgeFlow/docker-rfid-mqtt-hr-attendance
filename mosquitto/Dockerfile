@@ -1,5 +1,6 @@
-FROM alpine
+FROM alpine:3.6
 
+RUN adduser -S -H -D mosquitto
 RUN apk add --no-cache mosquitto mosquitto-clients \
 && rm -rf /var/cache/apk/*
 
