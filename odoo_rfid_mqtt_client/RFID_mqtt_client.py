@@ -68,10 +68,10 @@ def connection(host, port, user, user_pw, database):
         object_facade = xmlrpclib.ServerProxy(url_template % (
             host, 'object'))
     else:
-         object_facade = xmlrpclib.ServerProxy(url_template % (
+        object_facade = xmlrpclib.ServerProxy(url_template % (
             host, port, 'object'))
-    if DEBUG:            
-        print "object_facade: ", object_facade
+        if DEBUG:            
+            print "object_facade: ", object_facade
 
 
 def compare_digest(x, y):
@@ -141,7 +141,7 @@ def on_message(mosq, obj, msg):
                     dbname, user_id, user_password, "hr.employee",
                     "register_attendance", card_id)
                 if DEBUG:
-                    print("PROPER ID: "+ res)
+                    print("PROPER ID: "+ str(res))
                 send_info = device_id + "###" + res["action"]
                 mqttc.publish("response", send_info)
                 r = os.urandom(16)
