@@ -43,22 +43,36 @@ before run them up.
 In ``mosquitto`` folder it is found a file called ``passwd``. There we must
 place ``$USER:$PASSWORD`` allowed to join to mosquitto broker.
 
-In ``odoo_rfid_mqtt/secrets`` folder it is found next variables that should be
+In ``.env`` file it is found next variables that should be
 filled.
 
 **Attention!** Keep this text file clean from comments and final line spaces :)
 
-```txt
-host:odoo.example.com               # Odoo URL
-port:8069                           # Odoo Port (if using https use 443)
-user_name:rfid_attendance           # Odoo User name. Preferable specific user to manage attendances only.
-user_password:PaSsWoRd              # Odoo User password
-dbname:example_db                   # db_name for odoo production instance.
-mqtt_id:mosquitto                   # mqtt URL, no need modifications for general usage.
-mqtt_port:1883                      # Default, see docker-compose.yml file.
-mqtt_user:python_rfid               # Related to mosquitto passwd file.
-mqtt_pass:1234                      # Related to mosquitto passwd file.
-key:SuPeRhArDpAsSwOrD               # Encrypt key shared by mqtt clients to codify messages.
+```env
+# Odoo URL
+ODOO_HOST=127.0.0.1
+
+# Odoo Port (if using https use 443)
+ODOO_PORT=8069
+
+# Odoo User name. Preferable specific user to manage attendances only.
+ODOO_USER_NAME=rfid_attendance
+ODOO_PASSWORD=admin
+
+# db_name for odoo production instance.
+PGDATABASE=10.0-test-hr_attendance_rfid
+
+# mqtt URL, no need modifications for general usage.
+MQTTHOST=mosquitto
+
+# MQTT -> Edit both look into /mosquitto/config/passwd $MQTT_USER:$MQTT_PASS
+MQTT_USER=python_rfid
+MQTT_PASS=1234
+# HMAC KEY: Encrypt key shared by mqtt clients to codify messages. 16 char ASCII
+KEY=M1k3y1sdAb3St0n4
+
+# DEBUG True or False
+DEBUG=True
 ```
 
 ## Run
