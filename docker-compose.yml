@@ -26,6 +26,7 @@ services:
       DEBUG: "$DEBUG"
     depends_on:
       - mosquitto
+
 networks:
   default:
     driver_opts:
