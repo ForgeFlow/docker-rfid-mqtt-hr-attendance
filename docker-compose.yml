@@ -1,0 +1,38 @@
+version: "3.1"
+services:
+  mosquitto:
+    build: ./mosquitto
+    restart: always
+    volumes:
+      - conf:/conf
+      - logs:/var/log
+    ports:
+      - "${MQTT_PORT}:1883"
+
+  odoo_rfid_mqtt:
+    build: ./odoo_rfid_mqtt_client
+    restart: always
+    environment:
+      ODOO_HOST: "$ODOO_HOST"
+      ODOO_PORT: "$ODOO_PORT"
+      ODOO_USER_NAME: "$ODOO_USER_NAME"
+      ODOO_PASSWORD: "$ODOO_PASSWORD"
+      PGDATABASE: "$PGDATABASE"
+      MQTT_HOST: "$MQTT_HOST"
+      MQTT_PORT: "$MQTT_PORT"
+      MQTT_USER: "$MQTT_USER"
+      MQTT_PASS: "$MQTT_PASS"
+      KEY: "$KEY"
+      DEBUG: "$DEBUG"
+    depends_on:
+      - mosquitto
+networks:
+  default:
+    driver_opts:
+      encrypted: 1
+
+volumes:
+  conf:
+  logs:
+
+
