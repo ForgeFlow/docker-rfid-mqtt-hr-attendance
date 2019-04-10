@@ -26,6 +26,7 @@ mqtt_pass = os.environ.get("MQTT_PASS")
 key = os.environ.get("KEY")
 DEBUG = os.environ.get("DEBUG") in ["true", "True"]
 
+
 if DEBUG:
     print "host: " + host
     print "port: " + port
@@ -40,8 +41,8 @@ if DEBUG:
 
 cnt = 0
 session_ids = {}
-same = True
-flag_auth = True
+same = {}
+flag_auth = {}
 
 
 def connection(host, port, user, user_pw, database):
@@ -96,25 +97,24 @@ def on_connect(mosq, obj, True, rc):
 # Is executed on new message
 def on_message(mosq, obj, msg):
     global cnt
-    global r, same, flag_auth
+    global session_ids, same, flag_auth
     global host, port, user_name, user_password, dbname
     if msg.topic == 'reset':
         cnt = 0
         if DEBUG:
             print("RESET!!!!!!!!!!!!!!!")
     elif msg.topic == 'acceso':
-        if same == False and flag_auth == True:
-            device_id, rcv_info = str(msg.payload).split("###")
+        device_id, rcv_info = str(msg.payload).split("###")
+        if same.get(device_id) == False and flag_auth.get(device_id) == True:
             send_info = device_id + "###" + "NOAUTH"
             mqttc.publish("response", send_info)
             if DEBUG:
                 print("++++++++++++++HMAC authentication failed++++++++++++++")
         else:
-            flag_auth = True
-            same = False
+            flag_auth[device_id] = True
+            same[device_id] = False
             if DEBUG:
                 print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-            device_id, rcv_info = str(msg.payload).split("###")
             card_id_b64 = rcv_info
             card_id_aux = base64.b64decode(card_id_b64)
             if DEBUG:
@@ -145,7 +145,7 @@ def on_message(mosq, obj, msg):
                     print("PROPER ID: "+ str(res))
                 send_info = device_id + "###" + res["action"]
                 mqttc.publish("response", send_info)
-                # session_ids[device_id] = set_range(os.urandom(16))
+                session_ids[device_id] = set_range(os.urandom(16))
             else:
                 if DEBUG:
                     print("--------------- CARD ID INTEGRITY "
@@ -166,7 +166,7 @@ def on_message(mosq, obj, msg):
                     device_id, session_ids.get(device_id)))
             send_info = device_id + "###" + "otherID"
             mqttc.publish("ack", send_info)
-            flag_auth = False
+            flag_auth[device_id] = False
             return 0
         hmac = HMAC.new(key, session_ids.get(device_id), SHA256)
         computed_hash_hex = hmac.hexdigest()
@@ -176,10 +176,10 @@ def on_message(mosq, obj, msg):
         hash_from_arduino = hashb64.encode("hex")
         if DEBUG:
             print("HMAC_ESP8266(HEX): " + hash_from_arduino)
-        same = compare_digest(computed_hash_hex,hash_from_arduino)
-        flag_auth = False
+        same[device_id] = compare_digest(computed_hash_hex,hash_from_arduino)
+        flag_auth[device_id] = False
         if DEBUG:
-            print("HMAC Comparison: " + str(same))
+            print("HMAC Comparison: " + str(same.get(device_id)))
     elif msg.topic == "init":
         if DEBUG:
             print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
