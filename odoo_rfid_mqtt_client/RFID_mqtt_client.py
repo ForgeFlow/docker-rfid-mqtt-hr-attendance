@@ -39,7 +39,7 @@ if DEBUG:
     print "key: " + key
 
 cnt = 0
-r = 0
+session_ids = {}
 same = True
 flag_auth = True
 
@@ -119,7 +119,8 @@ def on_message(mosq, obj, msg):
             card_id_aux = base64.b64decode(card_id_b64)
             if DEBUG:
                 print("CARD (encryptd and coded): " + card_id_aux)
-            decryption_suite = AES.new(key,AES.MODE_CBC,r)
+            decryption_suite = AES.new(key,AES.MODE_CBC, session_ids.get(
+                device_id))
             card_id_aux = decryption_suite.decrypt(card_id_aux)
             if DEBUG:
                 print("CARD (coded): " + card_id_aux)
@@ -144,8 +145,7 @@ def on_message(mosq, obj, msg):
                     print("PROPER ID: "+ str(res))
                 send_info = device_id + "###" + res["action"]
                 mqttc.publish("response", send_info)
-                r = os.urandom(16)
-                r = set_range(r)
+                # session_ids[device_id] = set_range(os.urandom(16))
             else:
                 if DEBUG:
                     print("--------------- CARD ID INTEGRITY "
@@ -159,16 +159,16 @@ def on_message(mosq, obj, msg):
         if DEBUG:
             print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
         device_id, rcv_info = str(msg.payload).split("###")
-        if not r:
-            r = os.urandom(16)
-            r = set_range(r)
+        if not session_ids.get(device_id):
+            session_ids[device_id] = set_range(os.urandom(16))
             if DEBUG:
-                print("ReAuth Session ID: " + r)
+                print("ReAuth Device ID: %s Session ID: %s" % (
+                    device_id, session_ids.get(device_id)))
             send_info = device_id + "###" + "otherID"
             mqttc.publish("ack", send_info)
             flag_auth = False
             return 0
-        hmac = HMAC.new(key, r, SHA256)
+        hmac = HMAC.new(key, session_ids.get(device_id), SHA256)
         computed_hash_hex = hmac.hexdigest()
         if DEBUG:
             print("HMAC(HEX): " + computed_hash_hex)
@@ -184,11 +184,11 @@ def on_message(mosq, obj, msg):
         if DEBUG:
             print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
         device_id, rcv_info = str(msg.payload).split("###")
-        r = os.urandom(16)
-        r = set_range(r)
+        session_ids[device_id] = set_range(os.urandom(16))
         if DEBUG:
-            print("Session ID: " + r)
-        send_info = device_id + "###" + r
+            print("Init Device ID: %s Session ID: %s" % (
+                device_id, session_ids.get(device_id)))
+        send_info = device_id + "###" + session_ids.get(device_id)
         mqttc.publish("ack", send_info)
     else:
         if DEBUG:
