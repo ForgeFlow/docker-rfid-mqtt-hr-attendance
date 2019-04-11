@@ -26,11 +26,16 @@ services:
       DEBUG: "$DEBUG"
     depends_on:
       - mosquitto
+    networks:
+      default:
+      bridge:
 
 networks:
   default:
     driver_opts:
       encrypted: 1
+  bridge:
+    driver: bridge
 
 volumes:
   conf:
