@@ -35,5 +35,3 @@ networks:
 volumes:
   conf:
   logs:
-
-
