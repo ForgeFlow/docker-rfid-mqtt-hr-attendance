@@ -29,6 +29,8 @@ services:
     networks:
       default:
       bridge:
+    volumes: 
+      - ./odoo_rfid_mqtt_client:/usr/src/app:z
 
 networks:
   default:
