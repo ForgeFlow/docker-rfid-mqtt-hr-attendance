@@ -8,6 +8,7 @@ services:
       - logs:/var/log
     ports:
       - "${MQTT_PORT}:1883"
+    network_mode: host
 
   odoo_rfid_mqtt:
     build: ./odoo_rfid_mqtt_client
@@ -26,18 +27,9 @@ services:
       DEBUG: "$DEBUG"
     depends_on:
       - mosquitto
-    networks:
-      default:
-      bridge:
+    network_mode: host
     volumes: 
       - ./odoo_rfid_mqtt_client:/usr/src/app:z
-
-networks:
-  default:
-    driver_opts:
-      encrypted: 1
-  bridge:
-    driver: bridge
 
 volumes:
   conf:
