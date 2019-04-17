@@ -41,8 +41,8 @@ if DEBUG:
 
 cnt = 0
 session_ids = {}
-same = {}
 flag_auth = {}
+equal_hmac = False
 
 
 def connection(host, port, user, user_pw, database):
@@ -53,13 +53,14 @@ def connection(host, port, user, user_pw, database):
     if port in ['443', '80', '']:
         url_template = "https://%s/xmlrpc/%s"
         login_facade = xmlrpclib.ServerProxy(url_template % (
-        host, 'common'))
+            host, 'common'))
     else:
         url_template = "http://%s:%s/xmlrpc/%s"
         if DEBUG:
             print "URL: ", url_template % (host, port, 'common')
         login_facade = xmlrpclib.ServerProxy(url_template % (
             host, port, 'common'))
+        print "Login facade done"
     global user_id
     user_id = login_facade.login(database, user, user_pw)
     if DEBUG:
@@ -71,7 +72,7 @@ def connection(host, port, user, user_pw, database):
     else:
         object_facade = xmlrpclib.ServerProxy(url_template % (
             host, port, 'object'))
-        if DEBUG:            
+        if DEBUG:
             print "object_facade: ", str(object_facade)
 
 
@@ -83,6 +84,7 @@ def compare_digest(x, y):
     result = 0
     for a, b in zip(x, y):
         result |= ord(a) ^ ord(b)
+    print(result)
     return result == 0
 
 
@@ -97,24 +99,27 @@ def on_connect(mosq, obj, True, rc):
 # Is executed on new message
 def on_message(mosq, obj, msg):
     global cnt
-    global session_ids, same, flag_auth
+    global session_ids, equal_hmac, flag_auth
     global host, port, user_name, user_password, dbname
+
+    # Get device id and message payload
+    device_id, rcv_info = str(msg.payload).split("###")
+    if DEBUG:
+        print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+
     if msg.topic == 'reset':
         cnt = 0
         if DEBUG:
-            print("RESET!!!!!!!!!!!!!!!")
-    elif msg.topic == 'acceso':
-        device_id, rcv_info = str(msg.payload).split("###")
-        if same.get(device_id) == False and flag_auth.get(device_id) == True:
-            send_info = device_id + "###" + "NOAUTH"
-            mqttc.publish("response", send_info)
+            print("!!!!!!!!!!!!!!!RESET!!!!!!!!!!!!!!!")
+
+    elif msg.topic == 'access':
+        if not flag_auth.get(device_id):
+            send_info = device_id + "###" + "notAuthenticated"
+            mqttc.publish("ack", send_info)
             if DEBUG:
-                print("++++++++++++++HMAC authentication failed++++++++++++++")
+                print("A non-authenticated device tried to access...Forbidden")
         else:
-            flag_auth[device_id] = True
-            same[device_id] = False
-            if DEBUG:
-                print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+            # Get from the message the Card ID to register to Odoo
             card_id_b64 = rcv_info
             card_id_aux = base64.b64decode(card_id_b64)
             if DEBUG:
@@ -130,44 +135,56 @@ def on_message(mosq, obj, msg):
             card_id = card_id_aux[-8:]
             if DEBUG:
                 print("#################################"
-                  "################################################")
+                      "################################################")
                 print("PARAMETERS: " + str(host) + " / " + str(
                 port) + " / " + str(user_name) + " / " + str(
                 user_password) + " / " + str(dbname))
                 print("##################################"
-                  "###############################################")
+                      "###############################################")
+            # Connect to Odoo
             connection(host, port, user_name, user_password, dbname)
             if check_id_integrity(card_id):
                 res = object_facade.execute(
                     dbname, user_id, user_password, "hr.employee",
                     "register_attendance", card_id)
                 if DEBUG:
-                    print("PROPER ID: "+ str(res))
-                send_info = device_id + "###" + res["action"]
+                    print("PROPER ID: " + str(res))
+                # Temporal --> Translate Odoo check_in check_out to int codes
+                if res.get('action') == 'check_in':
+                    action = 201
+                elif res.get('action') == 'check_out':
+                    action = 202
+                else:
+                    action = 404
+
+                # Send response through response channel
+                print("Sending response to RAS action=" + str(action))
+                send_info = device_id + "###" + str(action)
                 mqttc.publish("response", send_info)
-                session_ids[device_id] = set_range(os.urandom(16))
+                flag_auth[device_id] = False
             else:
                 if DEBUG:
-                    print("--------------- CARD ID INTEGRITY "
-                      "COMPROMISED ----------------")
-                send_info = device_id + "###" + "NOAUTH"
-                mqttc.publish("response", send_info)
+                    print("--------------- CARD ID INTEGRITY COMPROMISED "
+                          "----------------")
+                send_info = device_id + "###" + "notAuthenticated"
+                mqttc.publish("ack", send_info)
         if DEBUG:
             print("Trial: " + str(cnt))
         cnt = cnt + 1
+
     elif msg.topic == "hmac":
-        if DEBUG:
-            print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-        device_id, rcv_info = str(msg.payload).split("###")
+        # TODO: Add a session expiration date and check if session active
         if not session_ids.get(device_id):
-            session_ids[device_id] = set_range(os.urandom(16))
+            # There is no active session for the device
             if DEBUG:
-                print("ReAuth Device ID: %s Session ID: %s" % (
+                print("Session expired for Device ID: %s Session ID: %s" % (
                     device_id, session_ids.get(device_id)))
-            send_info = device_id + "###" + "otherID"
+            send_info = device_id + "###" + "sessionExpired"
             mqttc.publish("ack", send_info)
             flag_auth[device_id] = False
             return 0
+
+        # Compute HMAC encryption using session id and HMAC Key
         hmac = HMAC.new(key, session_ids.get(device_id), SHA256)
         computed_hash_hex = hmac.hexdigest()
         if DEBUG:
@@ -176,17 +193,28 @@ def on_message(mosq, obj, msg):
         hash_from_arduino = hashb64.encode("hex")
         if DEBUG:
             print("HMAC_ESP8266(HEX): " + hash_from_arduino)
-        same[device_id] = compare_digest(computed_hash_hex,hash_from_arduino)
-        flag_auth[device_id] = False
+        # Compare HMAC received and computed to validate authentication
+        equal_hmac = compare_digest(computed_hash_hex, hash_from_arduino)
         if DEBUG:
-            print("HMAC Comparison: " + str(same.get(device_id)))
+            print("HMAC Comparison: " + str(equal_hmac))
+
+        print(equal_hmac)
+
+        # We send an ack message with the authentication result
+        if equal_hmac:
+            print("Equal HMAC")
+            flag_auth[device_id] = True
+            send_info = device_id + "###" + "authenticationSuccessful"
+        else:
+            print("Different HMAC")
+            flag_auth[device_id] = False
+            send_info = device_id + "###" + "authenticationFailed"
+        mqttc.publish("ack", send_info)
+
     elif msg.topic == "init":
-        if DEBUG:
-            print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-        device_id, rcv_info = str(msg.payload).split("###")
         session_ids[device_id] = set_range(os.urandom(16))
         if DEBUG:
-            print("Init Device ID: %s Session ID: %s" % (
+            print("Init Device ID: %s with Session ID: %s" % (
                 device_id, session_ids.get(device_id)))
         send_info = device_id + "###" + session_ids.get(device_id)
         mqttc.publish("ack", send_info)
@@ -211,7 +239,8 @@ def set_range(l):
 def check_id_integrity(nid):
     checksum = 0
     for i in xrange(len(nid)):
-        #if ('0' >= nid[i] <= '9') or ('a' >= nid[i] <= 'z'): It didn't work properly when tested
+        # if ('0' >= nid[i] <= '9') or ('a' >= nid[i] <= 'z'):
+        # It didn't work properly when tested
         numbers = all([nid[i]>='0', nid[i]<='9'])
         letters = all([nid[i]>='a', nid[i]<='z'])
         if numbers or letters:
@@ -257,11 +286,11 @@ mqttc.username_pw_set(mqtt_user, mqtt_pass)
 mqttc.connect(mqtt_host, mqtt_port)
 
 # subscribe to topic
-mqttc.subscribe("acceso", 0)
-mqttc.subscribe("reset",0)
+mqttc.subscribe("access", 0)
+mqttc.subscribe("reset", 0)
 
-mqttc.subscribe("init",0)
-mqttc.subscribe("hmac",0)
+mqttc.subscribe("init", 0)
+mqttc.subscribe("hmac", 0)
 
 # loop searching for new data to read
 rc = 0
